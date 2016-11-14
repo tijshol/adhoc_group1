@@ -4,10 +4,10 @@ global nodespace;
 global DSR_src;
 global DSR_des;
 
-N = 10;             % Amount of nodes
+N = 50;             % Amount of nodes
 r = 0.5;              % Maximum range
-sigma = 1;          % Deviation of range
-nodespace = 1;     % Size of node space
+sigma = 2;          % Deviation of range
+nodespace = 5;     % Size of node space
 
 % Set node positions
 nPos = nodespace*rand(N,2); % Randomize the nodes within the node space
@@ -85,7 +85,6 @@ node = struct('state',nodeState, ...        % State of node (string)
     'pos',mat2cell(nPos,ones(N,1),2), ...   % Position of node (1x2 number)
     'degree',num2cell(d), ...               % Degree of node (number)
     'recvBuf',clearBuffer, ...              % Receive buffer (Nx1 struct)
-    'received',false, ...                   % Receive flag (boolean)
     'memory',struct());                     % Memory of the node (struct)
 
 global link;
@@ -96,9 +95,8 @@ link = struct('state',linkState, ...        % State of the link (string)
 global nextNode;
 global nextLink;
 
-DSR_src = 1;
-DSR_des = N;
-
+[~, DSR_src] = min(nPos(:,1).*nPos(:,2));
+[~, DSR_des] = max(nPos(:,1).*nPos(:,2));
 
 %% PERFORM DSR
 
@@ -118,9 +116,12 @@ link = nextLink;
 plotgraph;
 title('Iteration 0')
 
-for n = 1:5
+exitSim = false;
+titleEvent = ' searching with RREQ...';
+
+for n = 1:20
     disp('Ready!')
-    pause;
+    pause(0.1);
     disp(['-- ITERATION ' num2str(n) ' --'])
     
     % Go by every node
@@ -145,49 +146,78 @@ for n = 1:5
                     % path: path already taken
                     % pathWeight: weight of path already taken
                     
-                    if ~strcmp(node(i).state,'flooded')
-                        % Determine last node in path
-                        lastNode = recvPacket.body.path(end);
+                    % Determine last node in path
+                    lastNode = recvPacket.body.path(end);
                         
-                        % Append RSSI to the weight and add ID to the route
-                        pathWeight = recvPacket.body.pathWeight + link(lastNode,i).weight;
-                        path = [recvPacket.body.path; i];
+                    % Append RSSI to the weight and add ID to the route
+                    pathWeight = recvPacket.body.pathWeight + link(lastNode,i).weight;
+                    path = [recvPacket.body.path; i];
+                    
+                    if i == recvPacket.body.dest % We found the node!
+                        % Create a response packet and send it back.
+
+                        RREPBody = struct('path', path, ...
+                                          'pathWeight', pathWeight, ...
+                                          'repStep', length(path)-1);
+
+                        newPacket = struct('head','DSR_RREP', ...
+                                            'body', RREPBody);
                         
-                        if i == recvPacket.body.dest % We found the node!
-                            % Create a response packet and send it back.
-                            
-                            RREPBody = struct('path', path, ...
-                                              'pathWeight', pathWeight, ...
-                                              'repStep', length(path)-1);
-                            
-                            newPacket = struct('head','DSR_RREP', ...
-                                                'body', RREPBody);
-                            if ~any(strcmp('DSRpaths',fieldnames(nextNode(i).memory)))
-                                nextNode(i).memory.DSRpaths = struct([]);
-                            end
-                            nextNode(i).memory.DSRpaths = [nextNode(i).memory.DSRpaths newPacket];
-                            
-                            % sendPacket(newPacket,i,newPacket.body.repStep);
-                            
-                        else % We have to keep looking!
-                            newPacket = recvPacket;
-                            newPacket.body.pathWeight = pathWeight;
-                            newPacket.body.path = path;
-                            broadcast(newPacket,i);
+                        % Append packet to array of DSR packets received
+                        if ~any(strcmp('DSRpaths',fieldnames(nextNode(i).memory)))
+                            nextNode(i).memory.DSRpaths = struct([]);
                         end
+                        nextNode(i).memory.DSRpaths = [nextNode(i).memory.DSRpaths newPacket];
                         
+                        if ~strcmp(node(i).state,'flooded')
+                            sendPacket(newPacket,i,path(end-1));
+                            nextNode(i).state = 'flooded';
+                            titleEvent = ' replying with RREP...';
+                        end
+                    end
+                    
+                    % If not the destination and not flooded yet, broadcast the new packet                        
+                    if i ~= recvPacket.body.dest && ~strcmp(node(i).state,'flooded')
+                        newPacket = recvPacket;
+                        newPacket.body.pathWeight = pathWeight;
+                        newPacket.body.path = path;
+                        broadcast(newPacket,i);
                         % Make sure after this iteration the node stops broadcasting
                         nextNode(i).state = 'flooded';
-                    else
-                        disp(['Node' num2str(i) ' is already flooded!']);
                     end
-%                 case 'DSR_RREP' % Dynamic source routing response
+                    
+                case 'DSR_RREP' % Dynamic source routing response
+                    % -- Packet body:
+                    % path: path going back to the source
+                    % pathWeight: weight of path already taken
+                    % repStep: the current step in the reply path
+                    nextRepStep = recvPacket.body.repStep - 1;
+                    
+                    if nextRepStep == 0 % We reached the source again!
+                        disp('A route is known!');
+                        highlight(recvPacket.body.path);
+                        exitSim = true;
+                    else
+                        newPacket = recvPacket;
+                        newPacket.body.repStep = nextRepStep;
+                        sendPacket(newPacket,i,recvPacket.body.path(nextRepStep));
+                    end
             end
+            if exitSim
+                break;
+            end
+        end
+        if exitSim
+            break;
         end
         if packetAmount>0
             % Clear the receive buffer
             nextNode(i).recvBuf = clearBuffer;
         end
+    end
+    if exitSim
+        title(['Route from node ' num2str(DSR_src) ' to ' num2str(DSR_des)]);
+        break;
     end
     
     % Update complete node and link struct arrays
@@ -196,7 +226,7 @@ for n = 1:5
     link = nextLink;
     
     plotgraph;
-    title(['Iteration ' num2str(n)]);
+    title(['Iteration ' num2str(n) titleEvent]);
     resetLinkStates();
     
     % test test test
