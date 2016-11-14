@@ -4,17 +4,17 @@ function sendPacket( pack, src, des )
     global nextNode;
     global nextLink;
     
-    disp('    ')
-    disp('CALL TO SENDPACKET')
-    disp(['des = ' num2str(des)])
+%     disp('    ')
+%     disp('CALL TO SENDPACKET')
+%     disp(['des = ' num2str(des)])
     
     for i = 1:length(des)
         if link(src,des(i)).valid
-            disp(['sent to ' num2str(des(i))])
+%             disp(['sent to ' num2str(des(i))])
             nextNode(des(i)).recvBuf = [nextNode(des(i)).recvBuf pack];
             nextNode(des(i)).received = true;
-            nextLink(src,des(i)).state = 'active';
-            nextLink(des(i),src).state = 'active';
+            nextLink(src,des(i)).state = pack.head;
+            nextLink(des(i),src).state = pack.head;
         else
             error(['Error: Node ' num2str(src) ' and node ' num2str(des(i)) ' are not connected.']);
         end

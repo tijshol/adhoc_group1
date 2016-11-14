@@ -7,6 +7,8 @@ function plotgraph()
     global DSR_src;
     global DSR_des;
     
+    numbers = true;
+    
     N = length(node);       
     clf;
     hold on;
@@ -22,8 +24,10 @@ function plotgraph()
                         col = [0 0.8 0];
                     case 'idle'
                         col = [0.5 0.5 1];
-                    case 'active'
+                    case 'DSR_RREQ'
                         col = [1 1 0.4];
+                    case 'DSR_RREP'
+                        col = [1 0.4 0.4];
                 end
                 plot([node(i).pos(1) node(j).pos(1)], ...
                      [node(i).pos(2) node(j).pos(2)], ...
@@ -55,6 +59,12 @@ function plotgraph()
     end
     plot(node(DSR_src).pos(1),node(DSR_src).pos(2),'r.','MarkerSize',40);
     plot(node(DSR_des).pos(1),node(DSR_des).pos(2),'g.','MarkerSize',40);
+    
+    if numbers
+        for i = 1:N
+            text(node(i).pos(1)+0.01*nodespace,node(i).pos(2)+0.03*nodespace,num2str(i));
+        end
+    end
 
     axis([0 nodespace 0 nodespace])
 end
