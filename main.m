@@ -4,10 +4,10 @@ global nodespace;
 global DSR_src;
 global DSR_des;
 
-N = 50;             % Amount of nodes
-r = 1;              % Maximum range
-sigma = 3;          % Deviation of range
-nodespace = 5;     % Size of node space
+N = 10;             % Amount of nodes
+r = 0.5;              % Maximum range
+sigma = 1;          % Deviation of range
+nodespace = 1;     % Size of node space
 
 % Set node positions
 nPos = nodespace*rand(N,2); % Randomize the nodes within the node space
@@ -146,7 +146,6 @@ for n = 1:5
                     % pathWeight: weight of path already taken
                     
                     if ~strcmp(node(i).state,'flooded')
-                        disp(['Node ' num2str(i) 'is not flooded but ' node(i).state]);
                         % Determine last node in path
                         lastNode = recvPacket.body.path(end);
                         
