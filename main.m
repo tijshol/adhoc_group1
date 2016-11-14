@@ -52,6 +52,48 @@ end
 % weight = ones(5);
 % nodespace = 1;
 
+% FUN
+% Circle graph!
+
+% N = 50;
+% nPos = 0.4 * [cos(0:2*pi/N:2*pi*(1-1/N))' + 0.5/0.4, sin(0:2*pi/N:2*pi*(1-1/N))' + 0.5/0.4];
+% A = false(N);
+% for i = 1:N-1
+%     A(i,i+1) = true;
+%     A(i+1,i) = true;
+% end
+% A(1,N) = true;
+% A(N,1) = true;
+% weight = ones(N);
+% nodespace = 1;
+
+% FUN
+% Grid graph
+% Nx = 7;
+% Ny = 7;
+% Nstep = 0.8/max([Nx Ny]);
+% N = Nx*Ny;
+% nPos = zeros(N,2);
+% A = false(N);
+% for i = 1:N
+%     nPos(i,:) = [mod(i-1,Nx)*Nstep+0.1 floor((i-1)/Ny)*Nstep+0.1];
+% end
+% range = (1.01*Nstep)^2;
+% for i = 1:N
+%     for j = 1:i
+%         if i == j
+%             continue;
+%         end
+%         dist = (nPos(i,1)-nPos(j,1))^2 + (nPos(i,2)-nPos(j,2))^2;
+%         if dist < range
+%             A(i,j) = true;
+%             A(j,i) = true;
+%         end
+%     end
+% end
+% weight = ones(N);
+% nodespace = 1;
+
 % Determine the degrees (sum of adjacency matrix)
 d = sum(A)';
 
@@ -119,7 +161,7 @@ title('Iteration 0')
 exitSim = false;
 titleEvent = ' searching with RREQ...';
 
-for n = 1:20
+for n = 1:80
     disp('Ready!')
     pause(0.1);
     disp(['-- ITERATION ' num2str(n) ' --'])
