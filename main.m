@@ -271,6 +271,4 @@ for n = 1:80
     plotgraph;
     title(['Iteration ' num2str(n) titleEvent]);
     resetLinkStates();
-    
-    % test test test
 end
