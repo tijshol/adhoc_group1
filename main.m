@@ -5,14 +5,12 @@ global DSR_src;
 global DSR_des;
 
 N = 50;             % Amount of nodes
-r = 0.5;              % Maximum range
-sigma = 2;          % Deviation of range
+r = 0.9;              % Maximum range
+sigma = 0.5;          % Deviation of range
 nodespace = 5;     % Size of node space
 
 % Set node positions
 nPos = nodespace*rand(N,2); % Randomize the nodes within the node space
-
-% nodes = [0.9*nodespace*cos(2*pi*(1:N)'/N) 0.9*nodespace*sin(2*pi*(1:N)'/N)];
 
 % Determine links
 A = false(N,N);     % Adjacency matrix
@@ -24,7 +22,7 @@ for i = 1:N
         if i == j
             continue;
         end
-        range = r + random('norm',0,sigma);
+        range = r*random('logn',0,sigma);
         dist = (nPos(i,1)-nPos(j,1))^2 + (nPos(i,2)-nPos(j,2))^2;
         if dist < range
             A(i,j) = true;
@@ -100,7 +98,7 @@ d = sum(A)';
 if any(find(d == 0))
     zeroDegreeN = length(find(d == 0));
     if zeroDegreeN == 1
-        zeroDegreeMsg = ['There is 1 node with degree 0! Continue?'];
+        zeroDegreeMsg = 'There is 1 node with degree 0! Continue?';
     else
         zeroDegreeMsg = ['There are ' num2str(zeroDegreeN) ' nodes with degree 0! Continue?'];
     end
@@ -145,6 +143,7 @@ global nextLink;
 nextNode = node;
 nextLink = link;
 
+% Broadcast an RREQ from the source node to start routing
 DSR_pack = struct('head', 'DSR_RREQ', ...
                   'body', struct('path', DSR_src, ...
                                  'pathWeight', 0, ...
@@ -152,9 +151,11 @@ DSR_pack = struct('head', 'DSR_RREQ', ...
 broadcast(DSR_pack, DSR_src);
 nextNode(DSR_src).state = 'flooded';
 
+% Then update the node and link arrays
 node = nextNode;
 link = nextLink;
 
+% Show the graph in its initial state (iteration 0)
 plotgraph;
 title('Iteration 0')
 
